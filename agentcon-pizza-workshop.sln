@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workshop", "workshop", "{2FB3DC77-AF68-536B-2541-271BB767B72D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pizzaagent", "workshop\pizzaagent\pizzaagent.csproj", "{81AF560C-ACD4-93FC-9091-2132564A1510}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{81AF560C-ACD4-93FC-9091-2132564A1510}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81AF560C-ACD4-93FC-9091-2132564A1510}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81AF560C-ACD4-93FC-9091-2132564A1510}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81AF560C-ACD4-93FC-9091-2132564A1510}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{81AF560C-ACD4-93FC-9091-2132564A1510} = {2FB3DC77-AF68-536B-2541-271BB767B72D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F7C9C67-DBA9-44B7-A2AC-6FAF86397637}
+	EndGlobalSection
+EndGlobal
