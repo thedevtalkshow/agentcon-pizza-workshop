@@ -1,4 +1,4 @@
-﻿using Azure.AI.Agents.Persistent;
+using Azure.AI.Agents.Persistent;
 using Azure.AI.Projects;
 using Azure.Identity;
 
@@ -11,10 +11,26 @@ AIProjectClient projectClient = new AIProjectClient(
 // Get the Persistent Agents Client
 PersistentAgentsClient agentsClient = projectClient.GetPersistentAgentsClient();
 
+// read instructions from instructions.txt file
+string instructions = File.ReadAllText("instructions.txt");
+
+// Get the Vector Store
+var vectorStoreId = "<your-vector-store-id>";
+PersistentAgentsVectorStore vectorStore = agentsClient.VectorStores.GetVectorStore(vectorStoreId);
+
+// Create a File Search Tool Resource
+FileSearchToolResource fileSearchToolResource = new FileSearchToolResource();
+fileSearchToolResource.VectorStoreIds.Add(vectorStore.Id);
+
 // Create an Agent
 PersistentAgent agent = agentsClient.Administration.CreateAgent(
     model: "gpt-4o",
-    name: "pizza-agent"
+    name: "pizza-agent",
+    instructions: instructions,
+    topP: 0.7f,
+    temperature: 0.7f,
+    tools: new List<ToolDefinition> { new FileSearchToolDefinition() },
+    toolResources: new ToolResources() { FileSearch = fileSearchToolResource }
 );
 
 Console.WriteLine($"Created agent with ID: {agent.Id}");

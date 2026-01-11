@@ -13,4 +13,10 @@
     <PackageReference Include="Azure.AI.Projects" Version="1.2.0-beta.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update=".\instructions.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
