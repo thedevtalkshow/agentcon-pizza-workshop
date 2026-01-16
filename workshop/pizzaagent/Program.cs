@@ -1,10 +1,23 @@
 using Azure.AI.Agents.Persistent;
 using Azure.AI.Projects;
 using Azure.Identity;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+
+//var projectEndpoint = Environment.GetEnvironmentVariable("PizzaBot_ProjectEndpoint");
+//var vectorStoreId = Environment.GetEnvironmentVariable("PizzaBot_VectorStoreId");
+
+IConfiguration configuration = new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .AddEnvironmentVariables()
+                    .Build();
+
+var projectEndpoint = configuration["PizzaBot_ProjectEndpoint"];
+var vectorStoreId = configuration["PizzaBot_VectorStoreId"];
 
 // Create the Foundry Project Client
 AIProjectClient projectClient = new AIProjectClient(
-    new Uri("<your-foundry-endpoint>"),
+    new Uri(projectEndpoint),
     new DefaultAzureCredential()
 );
 
@@ -15,12 +28,38 @@ PersistentAgentsClient agentsClient = projectClient.GetPersistentAgentsClient();
 string instructions = File.ReadAllText("instructions.txt");
 
 // Get the Vector Store
-var vectorStoreId = "<your-vector-store-id>";
 PersistentAgentsVectorStore vectorStore = agentsClient.VectorStores.GetVectorStore(vectorStoreId);
 
 // Create a File Search Tool Resource
 FileSearchToolResource fileSearchToolResource = new FileSearchToolResource();
 fileSearchToolResource.VectorStoreIds.Add(vectorStore.Id);
+
+//string get_pizza_quantity(int people) => $"For {people} you need to order {people / 2 + people % 2} pizzas";
+string get_pizza_quantity(int people) => $"For {people} you need to order 42 pizzas";
+
+// Create a Function Tool to estimate amount of pizza to order
+FunctionToolDefinition pizzaEstimatorTool = new(
+    name: "get_pizza_quantity",
+    description: "Get the quantity of pizza to order based on the number of people.",
+    parameters: BinaryData.FromObjectAsJson(
+        new
+        {
+            Type = "object",
+            Properties = new
+            {
+                People = new
+                {
+                    Type = "integer",
+                    Description = "The number of people to order pizza for",
+                },
+            },
+            Required = new[] { "people" },
+            AdditionalProperties = false
+        },
+        new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+        )
+    );
+
 
 // Create an Agent
 PersistentAgent agent = agentsClient.Administration.CreateAgent(
@@ -29,7 +68,7 @@ PersistentAgent agent = agentsClient.Administration.CreateAgent(
     instructions: instructions,
     topP: 0.7f,
     temperature: 0.7f,
-    tools: new List<ToolDefinition> { new FileSearchToolDefinition() },
+    tools: new List<ToolDefinition> { new FileSearchToolDefinition(), pizzaEstimatorTool },
     toolResources: new ToolResources() { FileSearch = fileSearchToolResource }
 );
 
@@ -72,13 +111,30 @@ try
         ThreadRun run = agentsClient.Runs.CreateRun(
             agent: agent,
             thread: thread
-            );        
+            );
 
         // wait for run to complete
         do
         {
             Thread.Sleep(500);
             run = agentsClient.Runs.GetRun(thread.Id, run.Id);
+
+            if (run.Status == RunStatus.RequiresAction && run.RequiredAction is SubmitToolOutputsAction submitToolOutputsAction)
+            {
+                foreach (RequiredToolCall toolcall in submitToolOutputsAction.ToolCalls)
+                {
+                    if (toolcall is RequiredFunctionToolCall functionToolCall)
+                    {
+                        using JsonDocument argumentsJson = JsonDocument.Parse(functionToolCall.Arguments);
+                        if (functionToolCall.Name == pizzaEstimatorTool.Name)
+                        {
+                            int peopleArgument = argumentsJson.RootElement.GetProperty("people").GetInt32();
+                            var output = new ToolOutput(toolcall, get_pizza_quantity(peopleArgument));
+                            run = await agentsClient.Runs.SubmitToolOutputsToRunAsync(run, [output]);
+                        }
+                    }
+                }
+            }
         }
         while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress);
 
@@ -95,7 +151,7 @@ try
         if (first_message != null)
         {
             Console.WriteLine($"Agent: {first_message.Text}");
-        }                                    
+        }
     }
 }
 finally
